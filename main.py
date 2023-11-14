@@ -14,8 +14,8 @@ app = Flask(__name__)
 
 @app.route("/")
 def hello_world():
-    url = "https://www.vegasinsider.com/college-football/matchups/georgia-tech-vs-north-carolina/"
+    url = "https://www.vegasinsider.com/nfl/matchups/bills-vs-cowboys/"
     req = requests.get(url, headers)
     soup = BeautifulSoup(req.content, 'html.parser')
-    print(soup.prettify())
-    return f"<p>{soup.prettify()}</p>"
+    lines = soup.find_all("span", class_="data-value")
+    return f"<p>{lines}</p>"

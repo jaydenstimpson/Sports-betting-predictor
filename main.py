@@ -18,4 +18,7 @@ def hello_world():
     req = requests.get(url, headers)
     soup = BeautifulSoup(req.content, 'html.parser')
     lines = soup.find_all("span", class_="data-value")
-    return f"<p>{lines}</p>"
+    logo = soup.find_all("div", class_="book-logo")
+    return f"<p>{lines, logo}</p>"
+
+

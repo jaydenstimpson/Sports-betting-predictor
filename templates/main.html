@@ -1,0 +1,16 @@
+<!doctype html>
+<link rel="stylesheet" href="{{url_for('static', filename='style.css')}}">
+<title>Line Watcher</title>
+  <h1>Line Watcher</h1>
+  <h2>Sunday Prime Time Football, Cowboys at Bills</h2>
+  <ul id="navigation">
+    {% for line in lines %}
+        <li>
+            <img src="{{ line.book }}" /> 
+            <p>{{line.spread}}</p> 
+            <p>{{line.team2spread}}</p> 
+            <p>{{line.ml}}</p> 
+            <p>{{line.team2ml}}</p>
+        </li>
+    {% endfor %}
+  </ul>

@@ -1,70 +1,50 @@
-import requests
-from bs4 import BeautifulSoup
-from flask import Flask, render_template
+import pandas as pd
+from nba_api.stats.endpoints import playergamelog
+from nba_api.stats.static import players
+from sklearn.linear_model import LinearRegression
+import time
 
+# Function to find a player ID
+def get_player_id(player_name):
+    player_dict = players.find_players_by_full_name(player_name)
+    if player_dict:
+        return player_dict[0]["id"]
+    else:
+        raise ValueError("Player not found!")
 
-headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Max-Age': '3600',
-    'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0'
-    }
-app = Flask(__name__)
+# Fetch recent games
+def fetch_player_stats(player_id, season='2023-24'):
+    time.sleep(0.6)  # prevent rate limit
+    gamelog = playergamelog.PlayerGameLog(player_id=player_id, season=season, season_type_all_star='Regular Season')
+    df = gamelog.get_data_frames()[0]
+    return df.head(10)  # Last 10 games
 
-@app.route("/")
-def hello_world():
-    url = "https://www.vegasinsider.com/nfl/matchups/bills-vs-cowboys/"
-    req = requests.get(url, headers)
-    soup = BeautifulSoup(req.content, 'html.parser')
-    print(soup)
-    moneylinetable = soup.find(id="odds-table-moneyline--0")
-    moneylines = moneylinetable.find_all("td", class_="game-odds")
-    lines = soup.find_all("span", class_="data-value")
-    cowboysspread = lines[:5]
-    billsspread = lines[5:10]
-    cowboystotal = lines[10:15]
-    billstotal = lines[15:20]
-    cowboysml = moneylines[:5]
-    billsml = moneylines[6:11]
-    print(moneylines)
-    # del lines[4]
-    # del lines[8]
-    logo = soup.find_all("div", class_="book-icn")
-    logo = logo[:5]
-    reallines = []
-    for l in logo:
-        icon = l.contents[1]['src']
-        line = Line(icon, '-3', '-100', '4', '10')
-        reallines.append(line)
-    for i in range(len(cowboysspread)):
-        if i < len(reallines):
-            reallines[i].spread = 'Cowboys Spread: ' + cowboysspread[i].contents[0]
-    for i in range(len(cowboysml)):
-        # print(cowboysml[i])
-        if i < len(reallines):
-            gameodds = cowboysml[i].find("span", class_=["data-value", "data-moneyline"])
-            reallines[i].ml = 'Cowboys Moneyline: ' + gameodds.contents[0]
-    for i in range(len(billsspread)):
-        if i < len(reallines):
-            reallines[i].team2spread = 'Bills Spread: ' + billsspread[i].contents[0]
-    for i in range(len(billsml)):
-        print(billsml[i])
-        gameodds = billsml[i].find("span", class_=["data-value", "data-moneyline"])
-        if i < len(reallines):
-            reallines[i].team2ml = 'Bills Moneyline: ' + gameodds.contents[0]
-        pass
-    # prizepicks = Line('PrizePicks', '-3', '-110')
-    # fanduel = Line('Fanduel', '-3.5', '-110')
-    # draftkings = Line('DraftKings', '-4', '-100')
-    # fakelines = [prizepicks, fanduel, draftkings]
-    return render_template('main.html', lines = reallines)
+# Get player ID
+player_name = "Stephen Curry"  # change this to any player
+player_id = get_player_id(player_name)
+df = fetch_player_stats(player_id)
 
+# Select and rename features
+df = df[["MIN", "FGA", "FGM", "FG3A", "FG3M", "PTS"]]
+df.columns = ["minutes", "fg_attempts", "fg_made", "three_pa", "three_pm", "points"]
+df = df.astype(float)
 
-class Line:
-    def __init__(self, book, spread, ml, team2spread, team2ml):
-        self.book = book
-        self.spread = spread
-        self.ml = ml
-        self.team2spread = team2spread
-        self.team2ml = team2ml
+# Prepare model
+X = df[["minutes", "fg_attempts", "fg_made", "three_pa", "three_pm"]]
+y = df["points"]
+
+model = LinearRegression()
+model.fit(X, y)
+
+# Predict next game
+latest_game = df.iloc[0]
+input_data = pd.DataFrame([{
+    "minutes": latest_game["minutes"],
+    "fg_attempts": latest_game["fg_attempts"],
+    "fg_made": latest_game["fg_made"],
+    "three_pa": latest_game["three_pa"],
+    "three_pm": latest_game["three_pm"]
+}])
+
+predicted_points = model.predict(input_data)[0]
+print(f"Predicted points for {player_name}'s next game: {predicted_points:.2f}")

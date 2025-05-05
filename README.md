@@ -7,12 +7,6 @@ Welcome to the Sports Betting Predictor, an application designed to assist users
 
 Some notable Features of this code will be 
 
-Total minutes the player played in a game
-Field Goals Attempted (2pt + 3pt shots attempted)
-Field Goals Made
-Three-Point Attempts
-Three-Point Made
-
-I am also gonna add points, rebounds, assists, steals, and blocks 
+points, rebounds, assists, steals, and blocks 
 
 How to run: `flask --app main run`
